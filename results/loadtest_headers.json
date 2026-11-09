@@ -1,0 +1,8 @@
+{
+  "per_replica": {
+    "parse-service-655569688-mkhh5": 1
+  },
+  "per_model_version": {
+    "v1": 1
+  }
+}

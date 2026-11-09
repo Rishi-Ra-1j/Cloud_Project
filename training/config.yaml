@@ -1,0 +1,24 @@
+# Task 2 - sequence-level distillation of EleutherAI/pythia-70m.
+# All training settings live here; `make train` reads only this file
+# (plus --subset / --version overrides on the command line).
+base_model: EleutherAI/pythia-70m
+teacher_model: phi3.5
+seed: 42
+learning_rate: 0.00005
+batch_size: 4
+gradient_accumulation_steps: 2
+num_train_epochs: 3
+max_seq_length: 128
+max_train_examples: 1500
+output_version: v1
+# Versions actually installed and verified on the laptop, 2026-11-09.
+# Record them here so a re-run on another machine can be compared.
+versions:
+  python: "3.11.7"
+  torch: "2.15.0+cpu"
+  transformers: "5.22.2"
+  datasets: "5.1.0"
+  accelerate: "see pip freeze in results/"
+  ollama: "0.40.15"
+  kubectl: "v1.37.2"
+  k3d: "v5.9.0"

@@ -1,0 +1,64 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: parse-service
+  namespace: app
+  labels:
+    app: parse-service
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: parse-service
+  template:
+    metadata:
+      labels:
+        app: parse-service
+    spec:
+      containers:
+        - name: parse-service
+          image: cs3081-parser:v1
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 8000
+          env:
+            - name: MODEL_URI
+              value: s3://models/v1
+            - name: MODEL_VERSION
+              value: v1
+            - name: S3_ENDPOINT
+              value: http://seaweedfs.data.svc.cluster.local:8333
+            - name: MAX_NEW_TOKENS
+              value: "128"
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: s3-credentials
+                  key: AWS_ACCESS_KEY_ID
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: s3-credentials
+                  key: AWS_SECRET_ACCESS_KEY
+          resources:
+            requests:
+              cpu: 500m
+              memory: 512Mi
+            limits:
+              cpu: "1"
+              memory: 1Gi
+          # /readyz stays 503 until the model is downloaded and loaded,
+          # so the readiness probe must allow a long cold start.
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8000
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: 8000
+            initialDelaySeconds: 60
+            periodSeconds: 10
+            failureThreshold: 12

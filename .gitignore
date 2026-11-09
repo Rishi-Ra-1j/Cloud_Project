@@ -1,0 +1,11 @@
+# Never commit: credentials, local env, model weights, cluster state.
+.s3-credentials
+.venv/
+__pycache__/
+*.pyc
+models/
+*.egg-info/
+.pytest_cache/
+.DS_Store
+# Local SeaweedFS data and k3d state live on the laptop, not in Git.
+data/train.jsonl

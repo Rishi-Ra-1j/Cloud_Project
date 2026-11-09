@@ -1,0 +1,7 @@
+# Pinned to the versions verified on the laptop, 2026-11-09.
+# CPU-only torch: the service image must stay <= 2 GB and run on 1 CPU / 1 GiB.
+torch==2.15.0+cpu
+transformers==5.22.2
+fastapi==0.162.2
+uvicorn==0.54.0
+boto3==1.43.126

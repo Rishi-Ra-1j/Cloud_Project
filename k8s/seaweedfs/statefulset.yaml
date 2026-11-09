@@ -1,0 +1,63 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: seaweedfs
+  namespace: data
+spec:
+  serviceName: seaweedfs
+  replicas: 1
+  selector:
+    matchLabels:
+      app: seaweedfs
+  template:
+    metadata:
+      labels:
+        app: seaweedfs
+    spec:
+      containers:
+        - name: seaweedfs
+          # Single process: master + volume server + filer + S3 gateway.
+          # weed server -dir=/data -s3 is the documented all-in-one mode.
+          image: chrislusf/seaweedfs:4.48
+          args:
+            - server
+            - -dir=/data
+            - -s3
+            - -s3.config=/etc/seaweedfs/s3.json
+            - -master.volumeSizeLimitMB=1024
+            - -volume.max=100
+          ports:
+            - name: s3
+              containerPort: 8333
+            - name: filer
+              containerPort: 8888
+            - name: master
+              containerPort: 9333
+            - name: volume
+              containerPort: 8080
+          resources:
+            requests:
+              cpu: 200m
+              memory: 256Mi
+            limits:
+              cpu: 1000m
+              memory: 1Gi
+          volumeMounts:
+            - name: data
+              mountPath: /data
+            - name: s3-config
+              mountPath: /etc/seaweedfs
+              readOnly: true
+      volumes:
+        - name: s3-config
+          secret:
+            secretName: seaweedfs-s3-config
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: [ReadWriteOnce]
+        storageClassName: local-path
+        resources:
+          requests:
+            storage: 5Gi

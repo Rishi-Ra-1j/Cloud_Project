@@ -1,0 +1,48 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: teacher-worker-0
+  namespace: pipeline
+spec:
+  backoffLimit: 2
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: worker
+          image: cs3081-teacher-worker:latest
+          imagePullPolicy: Never
+          env:
+            - name: SHARD_INDEX
+              value: "0"
+            - name: SHARD_COUNT
+              value: "2"
+            - name: S3_ENDPOINT
+              value: http://seaweedfs.data.svc.cluster.local:8333
+            - name: OLLAMA_URL
+              value: http://host.k3d.internal:11434
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: s3-credentials
+                  key: access-key
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: s3-credentials
+                  key: secret-key
+          volumeMounts:
+            - name: prompt
+              mountPath: /prompts
+              readOnly: true
+          resources:
+            requests:
+              cpu: 200m
+              memory: 256Mi
+            limits:
+              cpu: 1000m
+              memory: 1Gi
+      volumes:
+        - name: prompt
+          configMap:
+            name: teacher-prompt

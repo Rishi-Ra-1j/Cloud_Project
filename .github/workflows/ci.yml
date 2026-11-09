@@ -1,0 +1,62 @@
+# CI, in the order the brief requires: lint, unit tests, evaluation
+# (with the --min-validity 95 quality gate), then a secret scan.
+# The evaluation job downloads the trained model from the GitHub
+# Release (never from Git) and scores it on validation.jsonl.
+# A deliberately failed run is expected: the untrained Pythia-70M
+# base model scores below the gate. Its run link belongs in the report.
+name: CI
+on:
+  push:
+  pull_request:
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install ruff
+      - run: ruff check worker/ training/ service/ scripts/ tests/
+      - run: python -m py_compile worker/*.py training/*.py service/*.py scripts/*.py
+
+  test:
+    needs: lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install pytest
+      - run: python -m pytest tests/ -v
+
+  evaluate:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install torch --index-url https://download.pytorch.org/whl/cpu
+      - run: pip install transformers==5.22.2
+      # Trained model + tokenizer are Release assets, never committed.
+      - run: gh release download v1 --pattern 'pythia-70m-v1.zip' --dir /tmp/model-release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - run: unzip -q /tmp/model-release/pythia-70m-v1.zip -d models/v1
+      - run: python scripts/evaluate.py student --model models/v1
+      - run: python tools/score.py results/student_predictions.jsonl data/validation.jsonl --min-validity 95 --out results/student_validation.json
+
+  gitleaks:
+    needs: evaluate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

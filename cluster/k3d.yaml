@@ -1,0 +1,17 @@
+apiVersion: k3d.io/v1alpha5
+kind: Simple
+metadata:
+  name: cs3081
+servers: 1
+agents: 0
+image: rancher/k3s:v1.35.5-k3s1
+ports:
+  # Traefik Ingress: host 8080 -> cluster port 80 (the Locust host in the brief)
+  - port: 8080:80
+    nodeFilters:
+      - loadbalancer
+  - port: 8443:443
+    nodeFilters:
+      - loadbalancer
+# No extra k3s args: keep the defaults the brief relies on,
+# Traefik ingress controller and metrics-server (for the HPA).
